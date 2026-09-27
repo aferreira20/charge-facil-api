@@ -51,7 +51,7 @@ data da venda. Aluguéis ativos também informam `minutos_restantes` até o fim 
 
 ## 5 - Modelo de dados
 
-Três tabelas relacionadas (o GitHub desenha o diagrama abaixo a partir do código Mermaid):
+Três tabelas relacionadas:
 
 ```mermaid
 erDiagram
