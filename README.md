@@ -51,13 +51,80 @@ data da venda. Aluguéis ativos também informam `minutos_restantes` até o fim 
 
 ## 5 - Modelo de dados
 
-Três tabelas relacionadas:
+Três tabelas relacionadas (o GitHub desenha o diagrama abaixo a partir do código Mermaid):
 
+```mermaid
+erDiagram
+    estacao |o--o{ powerbank : "abriga agora"
+    powerbank |o--o{ aluguel : "é alugado em"
+    estacao |o--o{ aluguel : "retirada"
+    estacao |o--o{ aluguel : "devolução"
+
+    estacao {
+        int id PK
+        string nome UK
+        string endereco
+        string bairro
+        string cidade
+        int capacidade
+        string horario
+        bool ativa
+        datetime criada_em
+    }
+
+    powerbank {
+        int id PK
+        string codigo UK "CF-XXXX automático"
+        int capacidade_mah
+        string status "em estoque, disponível, alugado, manutenção, vendido"
+        int nivel_bateria
+        datetime nivel_atualizado_em
+        int estacao_id FK "nulo fora de uma estação"
+        datetime cadastrado_em
+    }
+
+    aluguel {
+        int id PK
+        string cliente_nome
+        string cliente_telefone
+        int powerbank_id FK "SET NULL"
+        int estacao_retirada_id FK "SET NULL"
+        int estacao_devolucao_id FK "SET NULL"
+        string situacao "ativo, devolvido, vendido"
+        datetime inicio
+        datetime prazo "início + 24h"
+        datetime fim
+        float caucao
+        float valor
+        float estorno
+        string powerbank_codigo "cópia para o histórico"
+        string retirada_nome "cópia para o histórico"
+        string devolucao_nome "cópia para o histórico"
+    }
 ```
-estacao 1 ──── N powerbank        (power banks presentes na estação)
-estacao 1 ──── N aluguel          (retirada e devolução)
-powerbank 1 ── N aluguel          (histórico de uso de cada bateria)
-```
+
+### Por que o modelo foi desenhado assim
+
+A premissa da arquitetura é que o cliente **retira o power bank em uma estação e devolve em qualquer outra da rede**.
+Isso define as decisões do modelo:
+
+- **O power bank não pertence a uma estação, ele está nela.** A coluna `powerbank.estacao_id` indica só onde o
+  power bank está agora. Na devolução ela passa a apontar para a estação onde ele foi entregue, que pode ser
+  outra. Fica nula quando o power bank está em estoque, alugado (com o cliente) ou vendido.
+- **O aluguel liga duas estações.** A tabela `aluguel` tem duas chaves estrangeiras para `estacao`:
+  `estacao_retirada_id` e `estacao_devolucao_id`. Assim o trajeto fica registrado mesmo quando a retirada e a
+  devolução acontecem em lugares diferentes. A devolução começa nula e só é preenchida ao devolver. Se o prazo
+  de 24h vencer, o aluguel vira venda e ela continua nula.
+- **O histórico fica no aluguel.** O `powerbank` guarda só o estado atual. Cada uso vira uma linha em
+  `aluguel`, com datas, franquia, valor cobrado e estorno. Um mesmo power bank acumula vários aluguéis
+  (relação 1-N), o que permite calcular o ranking de estações e a receita no painel.
+- **O histórico sobrevive a exclusões.** As chaves do aluguel usam `ON DELETE SET NULL`, e as colunas
+  `powerbank_codigo`, `retirada_nome` e `devolucao_nome` guardam cópias dos nomes (desnormalização proposital).
+  Se uma estação ou um power bank for excluído, os aluguéis antigos continuam legíveis.
+- **Cardinalidade opcional (`|o`).** Todas as chaves estrangeiras aceitam nulo, porque o power bank circula
+  entre estoque, estações e clientes e nem sempre está vinculado a uma estação.
+
+### Campos
 
 - **estacao**: nome (único), endereço, bairro, cidade, capacidade, horário, ativa, criada_em
 - **powerbank**: código (único), capacidade em mAh, status (`em estoque`, `disponível`, `alugado`, `manutenção`, `vendido`), nível de bateria, estação atual (nula quando em estoque, alugado ou vendido)
