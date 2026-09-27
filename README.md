@@ -98,7 +98,7 @@ Na primeira execução o banco é criado em `database/charge_facil.sqlite3` e po
    ```bash
    python -m flask run --port 5000
    ```
-   > Se aparecer *"'flask' não é reconhecido como um comando"*, as dependências não foram instaladas no ambiente virtual ativo: repita o passo 3.
+   > Se aparecer *"'flask' não é reconhecido como um comando"*, as dependências não foram instaladas no ambiente virtual ativo: repita o passo 6.3.
 
 6.5. **Acesse a documentação** em [http://127.0.0.1:5000](http://127.0.0.1:5000).
    A raiz redireciona para o Swagger UI (`/openapi/swagger`), onde todas as rotas podem ser testadas.
