@@ -32,7 +32,7 @@ portátil em segundos e siga em frente, sem ficar presa a uma tomada.
 - **Bateria simulada**: o power bank recarrega 30%/h na estação e descarrega 20%/h em uso. Só é liberado com pelo menos 20% de carga.
 - **Dashboard**: ocupação da rede, frota por status, receita de uso e de franquias, estornos, aluguéis perto do prazo e ranking de estações.
 
-### 3 - Tratamento de datas
+## 3 - Tratamento de datas
 
 Cada aluguel guarda `inicio`, `prazo` (início + 24h) e `fim`. A cada consulta, a API converte automaticamente
 em venda os aluguéis ativos cujo prazo já passou (`converter_alugueis_vencidos`), usando o próprio prazo como
