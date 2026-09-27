@@ -8,7 +8,7 @@ from flask_openapi3 import Info, OpenAPI, Tag
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 
-from model import Aluguel, Estacao, PowerBank, Session, converter_alugueis_vencidos
+from model import Aluguel, Estacao, PowerBank, Session, converter_alugueis_vencidos, normalizar
 from model.regras import (ALUGADO, ATIVO, CARENCIA_MINUTOS, CAUCAO, DEVOLVIDO, DISPONIVEL, ESTOQUE, MANUTENCAO,
                           PRAZO_HORAS, TARIFA_HORA_ADICIONAL, TARIFA_PRIMEIRA_HORA, TETO_DIARIO,
                           VENDIDO)
@@ -55,9 +55,11 @@ def listar_estacoes(query: EstacaoBuscaSchema):
         converter_alugueis_vencidos(session)
         consulta = session.query(Estacao)
         if query.busca:
-            termo = f"%{query.busca.strip()}%"
-            consulta = consulta.filter(or_(Estacao.nome.ilike(termo), Estacao.bairro.ilike(termo),
-                                           Estacao.cidade.ilike(termo)))
+            # Busca sem diferenciar acentos nem maiúsculas: "niteroi" encontra "Niterói"
+            termo = f"%{normalizar(query.busca.strip())}%"
+            consulta = consulta.filter(or_(func.sem_acento(Estacao.nome).like(termo),
+                                           func.sem_acento(Estacao.bairro).like(termo),
+                                           func.sem_acento(Estacao.cidade).like(termo)))
         if query.apenas_ativas:
             consulta = consulta.filter(Estacao.ativa.is_(True))
         return apresenta_estacoes(consulta.order_by(Estacao.nome).all()), 200
@@ -155,14 +157,14 @@ def listar_powerbanks(query: PowerBankBuscaSchema):
         powerbanks = consulta.order_by(PowerBank.codigo).all()
 
         if query.busca:
-            termo = query.busca.strip().lower()
+            termo = normalizar(query.busca.strip())
 
             def corresponde(pb):
                 venda = pb.venda
                 campos = [pb.codigo]
                 if venda:
                     campos += [venda.cliente_nome, venda.cliente_telefone]
-                return any(termo in c.lower() for c in campos)
+                return any(termo in normalizar(c) for c in campos)
 
             powerbanks = [pb for pb in powerbanks if corresponde(pb)]
         return apresenta_powerbanks(powerbanks), 200
@@ -283,7 +285,8 @@ def listar_alugueis(query: AluguelBuscaSchema):
         if query.cliente:
             termo = query.cliente.strip()
             digitos = "".join(c for c in termo if c.isdigit())
-            filtros = [Aluguel.cliente_nome.ilike(f"%{termo}%"), Aluguel.cliente_telefone.ilike(f"%{termo}%")]
+            filtros = [func.sem_acento(Aluguel.cliente_nome).like(f"%{normalizar(termo)}%"),
+                       Aluguel.cliente_telefone.like(f"%{termo}%")]
             if len(digitos) >= 4:
                 # Compara só os dígitos, para "(21) 99999-0000" e "21999990000" serem o mesmo telefone
                 telefone = func.replace(func.replace(func.replace(func.replace(

@@ -140,7 +140,8 @@ charge-facil-api/
 │   ├── powerbank.py     # Tabela powerbank
 │   ├── aluguel.py       # Tabela aluguel + conversão em venda após 24h
 │   ├── regras.py        # Tarifa, franquia, prazos e simulação de bateria
-│   └── seed.py          # Dados de demonstração
+│   ├── seed.py          # Dados de demonstração
+│   └── texto.py         # Normalização de texto para buscas sem acento
 └── schemas/             # Schemas Pydantic (requisição e resposta)
     ├── estacao.py
     ├── powerbank.py
